@@ -16,6 +16,7 @@
     },
 
     "runArgs": [
-        "--gpus", "all"
-    ]
+		"--gpus", "all",
+		"--ipc", "host"
+	]
 }

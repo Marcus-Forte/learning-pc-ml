@@ -1,2 +1,5 @@
 data/
 *.zip
+*.xyz
+*.e57
+*.ply

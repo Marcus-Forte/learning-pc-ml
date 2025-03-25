@@ -12,56 +12,52 @@ from torch.utils.data import DataLoader
 from tensorboardX import SummaryWriter
 from tqdm import tqdm
 
+from featModel.FeatModel import FeatModel
+
+
+# Elcio
+def load_xyz(filename):
+    
+    points = [[]]
+    with open(f"{filename}",'r') as f:
+        while True:
+            line = f.readline()
+            if line == "":
+                break
+            xyz = line.replace('\n', '').split(' ')
+            xyz = xyz[0:3]
+            point = []
+            for el in xyz:
+                point.append(float(el))
+            
+            points[0].append(point)
+    return torch.tensor(points)
+
+def save_xyz(points, filename):
+    with open(f"{filename}.xyz",'w') as f:
+        for point in points[0]:
+            f.write(f"{point[0]} {point[1]} {point[2]}\n")
+
 # Only if the files are in example folder.
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if BASE_DIR[-8:] == 'examples':
     sys.path.append(os.path.join(BASE_DIR, os.pardir))
     os.chdir(os.path.join(BASE_DIR, os.pardir))
     
-from learning3d.models import PointNet
-from learning3d.models import Classifier
+from learning3d.models import PointNet, create_pointconv
+from learning3d.models import Classifier, Segmentation
 from learning3d.data_utils import ClassificationData, ModelNet40Data
 
-def display_open3d(template):
-    pass
-    # template_ = o3d.geometry.PointCloud()
-    # template_.points = o3d.utility.Vector3dVector(template)
-    # # template_.paint_uniform_color([1, 0, 0])
-    # o3d.visualization.draw_geometries([template_])
-
-def test_one_epoch(device, model, test_loader, testset):
+def predict_c(device, model, testset, pointcloud_file):
     model.eval()
-    test_loss = 0.0
-    pred  = 0.0
-    count = 0
-    for i, data in enumerate(tqdm(test_loader)):
-        points, target = data
-        target = target[:,0]
+    points = load_xyz(pointcloud_file)
+    points = points.to(device)
+    # print(points)
+    output = model(points)
+    print(output)
+    label = torch.argmax(output[0]).item()
+    print(f"label: {label} := {testset.get_shape(label)}")
 
-        points = points.to(device)
-        target = target.to(device)
-
-        output = model(points)
-        loss_val = torch.nn.functional.nll_loss(
-            torch.nn.functional.log_softmax(output, dim=1), target, size_average=False)
-        print("Ground Truth Label: ", testset.get_shape(target[0].item()))
-        print("Predicted Label:    ", testset.get_shape(torch.argmax(output[0]).item()))
-        display_open3d(points.detach().cpu().numpy()[0])
-
-        test_loss += loss_val.item()
-        count += output.size(0)
-
-        _, pred1 = output.max(dim=1)
-        ag = (pred1 == target)
-        am = ag.sum()
-        pred += am.item()
-
-    test_loss = float(test_loss)/count
-    accuracy = float(pred)/count
-    return test_loss, accuracy
-
-def test(args, model, test_loader, testset):
-    test_loss, test_accuracy = test_one_epoch(args.device, model, test_loader, testset)
 
 def options():
     parser = argparse.ArgumentParser(description='Point Cloud Registration')
@@ -88,11 +84,17 @@ def options():
                         help='symmetric function (default: max)')
 
     # settings for on training
-    parser.add_argument('--pretrained', default='learning3d/pretrained/exp_classifier/models/best_model.t7', type=str,
+    parser.add_argument('--pretrained_c', default='learning3d/pretrained/exp_classifier/models/best_model.t7', type=str,
                         metavar='PATH', help='path to pretrained model file (default: null (no-use))')
+    parser.add_argument('--pretrained_s', type=str,
+                        metavar='PATH', help='path to pretrained model file (default: null (no-use))')    
     parser.add_argument('--device', default='cuda:0', type=str,
                         metavar='DEVICE', help='use CUDA if available')
+    
+    parser.add_argument('--pointcloud', type=str, required=True,
+                        metavar='FILE', help='path to the input .xyz pointcloud file')
 
+    
     args = parser.parse_args()
     return args
 
@@ -108,16 +110,26 @@ def main():
         args.device = 'cpu'
     args.device = torch.device(args.device)
 
-    # Create PointNet Model.
-    ptnet = PointNet(emb_dims=args.emb_dims, use_bn=True)
-    model = Classifier(feature_model=ptnet)
+    # Create PointConv Model.
+    # PointConv = create_pointconv(classifier=False, pretrained=None)
+    # ptconv = PointConv(emb_dims=args.emb_dims, classifier=True, pretrained=None)
 
-    if args.pretrained:
-        assert os.path.isfile(args.pretrained)
-        model.load_state_dict(torch.load(args.pretrained, map_location='cpu'))
-    model.to(args.device)
+    ptnet = PointNet(emb_dims=args.emb_dims, use_bn=True, global_feat=True)
+    segptnet = FeatModel(1024, use_bn=False, global_feat=False)
 
-    test(args, model, test_loader, testset)
+    model = Classifier(feature_model=ptnet) # select model
+    segmodel = Segmentation(feature_model=segptnet) # select model
 
+    if args.pretrained_c:
+        assert os.path.isfile(args.pretrained_c)
+        model.load_state_dict(torch.load(args.pretrained_c, map_location='cpu'))
+        model.to(args.device)
+
+    if args.pretrained_s:
+        segmodel.load_state_dict(torch.load(args.pretrained_s, map_location='cpu')) 
+        segmodel.to(args.device)
+
+    predict_c(args.device, model, testset, args.pointcloud)
+    
 if __name__ == '__main__':
     main()
