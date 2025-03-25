@@ -1,0 +1,21 @@
+{
+    "name": "PyTorch learning3d",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "args": {
+            "VARIANT": "3"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.debugpy",
+                "ms-python.python"
+            ]
+        }
+    },
+
+    "runArgs": [
+        "--gpus", "all"
+    ]
+}
