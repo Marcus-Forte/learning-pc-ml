@@ -10,7 +10,8 @@
         "vscode": {
             "extensions": [
                 "ms-python.debugpy",
-                "ms-python.python"
+                "ms-python.python",
+                "zxh404.vscode-proto3"
             ]
         }
     },

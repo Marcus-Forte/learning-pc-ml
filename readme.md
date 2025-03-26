@@ -15,11 +15,14 @@
 - Download dataset `modelnet40_ply_hdf5_2048.zip`
 
 
-- Run: `python src/app.py --pretrained_c best_model.t7 --pretrained_s best_model.t7 --pointcloud caixa.xyz`
+- Run: `python src/app.py --pretrained_c pretrained/best_model_cls.t7`
 
+
+# API
+
+Generate proto files:
+- `python -m grpc_tools.protoc -I./grpc --python_out=src/gen/ --grpc_python_out=src/gen/ --pyi_out=src/gen grpc/ai.proto`
 
 # Labels
 
 SemSeg: `classes = ['ceiling', 'floor', 'wall', 'beam', 'column', 'window', 'door', 'table', 'chair', 'sofa', 'bookcase', 'board', 'clutter']`
-
-Class: ?
