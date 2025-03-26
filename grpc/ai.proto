@@ -1,0 +1,27 @@
+syntax = "proto3";
+package PointCloudTools;
+
+import "google/protobuf/empty.proto";
+
+
+message ClassifyRequest {
+    string filepath = 1;
+}
+
+message ClassifyResponse {
+    string label = 1;
+}
+
+message SegmentRequest {
+    string filepath = 1;
+}
+
+message SegmentsResponse {
+    repeated string segments = 1;
+}
+
+
+service AIServices {
+    rpc classifyAI(ClassifyRequest) returns (ClassifyResponse) {}
+    rpc segmentAI(SegmentRequest) returns (SegmentsResponse) {}
+}

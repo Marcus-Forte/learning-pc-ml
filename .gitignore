@@ -3,3 +3,4 @@ data/
 *.xyz
 *.e57
 *.ply
+*.pyc

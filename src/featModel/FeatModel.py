@@ -26,37 +26,6 @@ class FeatModel(torch.nn.Module):
 		self.global_feat = global_feat
 		if not self.global_feat: self.pooling = Pooling('max')
 
-		self.layers = self.create_structure()
-
-	def create_structure(self):
-		self.conv1 = torch.nn.Conv1d(3, 64, 1)
-		self.conv2 = torch.nn.Conv1d(64, 64, 1)
-		self.conv3 = torch.nn.Conv1d(64, 64, 1)
-		self.conv4 = torch.nn.Conv1d(64, 128, 1)
-		self.conv5 = torch.nn.Conv1d(128, self.emb_dims, 1)
-		self.relu = torch.nn.ReLU()
-
-		if self.use_bn:
-			self.bn1 = torch.nn.BatchNorm1d(64)
-			self.bn2 = torch.nn.BatchNorm1d(64)
-			self.bn3 = torch.nn.BatchNorm1d(64)
-			self.bn4 = torch.nn.BatchNorm1d(128)
-			self.bn5 = torch.nn.BatchNorm1d(self.emb_dims)
-
-		if self.use_bn:
-			layers = [self.conv1, self.bn1, self.relu,
-					  self.conv2, self.bn2, self.relu,
-					  self.conv3, self.bn3, self.relu,
-					  self.conv4, self.bn4, self.relu,
-					  self.conv5, self.bn5, self.relu]
-		else:
-			layers = [self.conv1, self.relu,
-					  self.conv2, self.relu, 
-					  self.conv3, self.relu,
-					  self.conv4, self.relu,
-					  self.conv5, self.relu]
-		return layers
-
 
 	def forward(self, input_data):
 		# input_data: 		Point Cloud having shape input_shape.
@@ -91,27 +60,4 @@ if __name__ == '__main__':
 	print("Network Architecture: ")
 	print(pn)
 	print("Input Shape of PointNet: ", x.shape, "\nOutput Shape of PointNet: ", y.shape)
-
-	class PointNet_modified(FeatModel):
-		def __init__(self):
-			super().__init__()
-
-		def create_structure(self):
-			self.conv1 = torch.nn.Conv1d(3, 64, 1)
-			self.conv2 = torch.nn.Conv1d(64, 128, 1)
-			self.conv3 = torch.nn.Conv1d(128, self.emb_dims, 1)
-			self.relu = torch.nn.ReLU()
-
-			layers = [self.conv1, self.relu,
-					  self.conv2, self.relu,
-					  self.conv3, self.relu]
-			return layers
-
-	pn = PointNet_modified()
-	y = pn(x)
-	print("\n\n\nModified Network Architecture: ")
-	print(pn)
-	print("Input Shape of PointNet: ", x.shape, "\nOutput Shape of PointNet: ", y.shape)
-
-
 
