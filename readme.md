@@ -21,6 +21,8 @@ Generate proto files:
 
 - Run: `python src/app.py --pretrained_c pretrained/best_model_cls.t7`
 
+- Generate .ply files from dataset: `python src/gen_clouds.py  --pretrained_c pretrained/best_model_cls.t7`
+
 # Labels
 
 SemSeg: `classes = ['ceiling', 'floor', 'wall', 'beam', 'column', 'window', 'door', 'table', 'chair', 'sofa', 'bookcase', 'board', 'clutter']`

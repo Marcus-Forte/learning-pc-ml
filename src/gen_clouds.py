@@ -11,31 +11,9 @@ from fileLoader import load_las, load_xyz
 
 sys.path.append('.')
 
-from gen import ai_pb2
-from gen import ai_pb2_grpc
+import numpy as np
 
-import plyfile 
-import grpc
-
-class AIServicesServicerImpl(ai_pb2_grpc.AIServicesServicer):
-    def __init__(self, model, testset):
-        self.model = model
-        self.testset = testset
-
-    def classifyAI(self, request, context):
-        filename = request.filepath
-        print(f'Classify AI called: processing {filename}')
-        
-        label = predict_c(torch.device('cpu:0'), self.model, self.testset, filename)
-        response = ai_pb2.ClassifyResponse(label=label)
-        
-        return response
-
-
-def save_xyz(points, filename):
-    with open(f"{filename}.xyz",'w') as f:
-        for point in points[0]:
-            f.write(f"{point[0]} {point[1]} {point[2]}\n")
+from plyfile import PlyData, PlyElement
 
 # Only if the files are in example folder.
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -47,7 +25,6 @@ from learning3d.models import PointNet
 from learning3d.models import Classifier, Segmentation
 from learning3d.data_utils import ClassificationData, ModelNet40Data
 
-
 def test_one_epoch(device, model, test_loader, testset):
     model.eval()
     test_loss = 0.0
@@ -57,7 +34,22 @@ def test_one_epoch(device, model, test_loader, testset):
         points, target = data
         target = target[:,0]
 
-        save_xyz(points, f"pointcloud_{i}")
+        vertices = points.numpy()[0]
+        vertex_data = np.array(
+            [(x, y, z) for (x,y,z) in vertices],
+            dtype=[
+                ("x", "f4"),
+                ("y", "f4"),
+                ("z", "f4"),
+            ],
+        )
+
+        # Create the PlyElement
+        ply_element = PlyElement.describe(vertex_data, "vertex")
+
+        # Write to file
+        PlyData([ply_element], text=True).write(f"test_pointcloud_{i}.ply")
+
         points = points.to(device)
         target = target.to(device)
 
@@ -83,17 +75,6 @@ def test(args, model, test_loader, testset):
     test_loss, test_accuracy = test_one_epoch(args.device, model, test_loader, testset)
      
      
-def predict_c(device, model, testset, pointcloud_file):
-    model.eval()
-    points = load_las(pointcloud_file)
-    points = points.to(device)
-    # print(points)
-    output = model(points)
-    print(output)
-    label = torch.argmax(output[0]).item()
-    print(f"label: {label} := {testset.get_shape(label)}")
-    return str(testset.get_shape(label))
-
 def options():
     parser = argparse.ArgumentParser(description='Point Cloud Registration')
     parser.add_argument('--dataset_path', type=str, default='ModelNet40',
@@ -174,8 +155,7 @@ def main():
     server.add_insecure_port('[::]:50051')
     server.start()
 
-    print('gRPC server started on port 50051')
-    server.wait_for_termination()
+ 
     
 if __name__ == '__main__':
     main() 
