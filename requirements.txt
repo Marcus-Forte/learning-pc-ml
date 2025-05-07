@@ -1,2 +1,4 @@
 grpcio==1.71.0
 grpcio-tools==1.71.0
+plyfile==1.1
+laspy==2.5.4

@@ -3,6 +3,7 @@
     "build": {
         "dockerfile": "Dockerfile",
         "context": "..",
+        "target": "dev",
         "args": {
             "VARIANT": "3"
         }
@@ -18,7 +19,7 @@
     },
 
     "runArgs": [
-		"--gpus", "all",
+		// "--gpus", "all",
 		"--ipc", "host"
 	]
 }

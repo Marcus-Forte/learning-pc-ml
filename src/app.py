@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 from concurrent import futures
 from tqdm import tqdm
 from featModel.FeatModel import FeatModel
+from fileLoader import load_las, load_xyz
 
 sys.path.append('.')
 
@@ -14,7 +15,6 @@ from gen import ai_pb2
 from gen import ai_pb2_grpc
 
 import grpc
-
 
 class AIServicesServicerImpl(ai_pb2_grpc.AIServicesServicer):
     def __init__(self, model, testset):
@@ -25,26 +25,11 @@ class AIServicesServicerImpl(ai_pb2_grpc.AIServicesServicer):
         filename = request.filepath
         print(f'Classify AI called: processing {filename}')
         
-        label = predict_c(torch.device('cuda:0'), self.model, self.testset, filename)
+        label = predict_c(torch.device('cpu:0'), self.model, self.testset, filename)
         response = ai_pb2.ClassifyResponse(label=label)
         
         return response
 
-def load_xyz(filename):
-    points = [[]]
-    with open(f"{filename}",'r') as f:
-        while True:
-            line = f.readline()
-            if line == "":
-                break
-            xyz = line.replace('\n', '').split(' ')
-            xyz = xyz[0:3]
-            point = []
-            for el in xyz:
-                point.append(float(el))
-            
-            points[0].append(point)
-    return torch.tensor(points)
 
 def save_xyz(points, filename):
     with open(f"{filename}.xyz",'w') as f:
@@ -99,7 +84,7 @@ def test(args, model, test_loader, testset):
      
 def predict_c(device, model, testset, pointcloud_file):
     model.eval()
-    points = load_xyz(pointcloud_file)
+    points = load_las(pointcloud_file)
     points = points.to(device)
     # print(points)
     output = model(points)
@@ -145,7 +130,7 @@ def options():
 
 def main():
     args = options()
-    args.dataset_path = "./" #os.path.join(os.getcwd(), os.pardir, os.pardir, 'ModelNet40', 'ModelNet40')
+    args.dataset_path = "/ai" #os.path.join(os.getcwd(), os.pardir, os.pardir, 'ModelNet40', 'ModelNet40')
     
     data = ModelNet40Data(train=False, root_dir=args.dataset_path)
     testset = ClassificationData(data)
