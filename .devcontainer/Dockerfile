@@ -15,5 +15,6 @@ RUN wget https://huggingface.co/datasets/Msun/modelnet40/resolve/d5dc795541800fe
 FROM dev AS run
 
 COPY . /app
+WORKDIR /app
 
 CMD ["python", "/app/src/app.py", "--pretrained_c", "/app/pretrained/best_model_cls.t7"]
